@@ -11,7 +11,7 @@ export async function handleMessage(message) {
       console.error("❌ Error al consultar la base de datos:", err);
       return;
     }
-    if (!row) return; // No hay configuración, no se envía mensaje
+    if (!row) return;
 
     const { spanish_channel, english_channel } = row;
     let targetChannelId, targetLanguage;
@@ -31,8 +31,21 @@ export async function handleMessage(message) {
       return message.channel.send("⚠️ Uno de los canales de traducción ha sido eliminado. Usa `/set_channel` para actualizar la configuración.");
     }
 
-    if (!targetChannelId) return; // No enviar mensajes si no hay configuración de canal
+    // 📷 Si el mensaje contiene imágenes, enviarlas al canal de destino
+    if (message.attachments.size > 0) {
+      const username = message.member ? message.member.displayName : message.author.username;
 
+      targetChannel.send({
+        content: `**${username}** ha enviado una imagen:`,
+        files: message.attachments.map(attachment => attachment.url)
+      });
+
+      return; // No intentar traducir imágenes
+    }
+
+    if (!targetChannelId) return;
+
+    // 📝 Si el mensaje es solo texto, traducirlo normalmente
     const translatedText = await translateMessage(message.content, targetLanguage);
     const username = message.member ? message.member.displayName : message.author.username;
 
