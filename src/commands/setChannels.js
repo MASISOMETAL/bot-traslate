@@ -2,9 +2,14 @@ import { SlashCommandBuilder } from 'discord.js';
 import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
 
-const db = new sqlite3.Database('./settings.db');
+const db = new sqlite3.Database('./settings.db', (err) => {
+  if (err) {
+    console.error("❌ Error al abrir la base de datos:", err.message);
+    process.exit(1);
+  }
+});
 
-// Convertir `db.run()` en una promesa para poder usar `await`
+// Convertir `db.run()` y `db.get()` en promesas para usar `await`
 const dbRunAsync = promisify(db.run);
 const dbGetAsync = promisify(db.get);
 
@@ -45,6 +50,14 @@ export default {
       await interaction.reply(`✅ **Canales configurados correctamente:**  
         - **Español:** ${spanishChannel}  
         - **Inglés:** ${englishChannel}`);
+
+      // 🛑 Cerrar la base de datos después de ejecutar el comando
+      db.close((err) => {
+        if (err) {
+          console.error("❌ Error al cerrar la base de datos:", err.message);
+        }
+      });
+
     } catch (error) {
       console.error("❌ Error al actualizar canales:", error);
       await interaction.reply({ content: '❌ Hubo un problema al configurar los canales.', ephemeral: true });

@@ -7,26 +7,37 @@ import sqlite3 from 'sqlite3';
 // Cargar variables del archivo .env
 dotenv.config();
 
-const db = new sqlite3.Database('./settings.db');
+const db = new sqlite3.Database('./settings.db', (err) => {
+  if (err) {
+    console.error("❌ Error al abrir la base de datos:", err.message);
+    process.exit(1); // Salir si no se puede acceder a la base de datos
+  }
+});
 
 // Crear la tabla si no existe
 db.run(`CREATE TABLE IF NOT EXISTS servers (
     guild_id TEXT PRIMARY KEY,
     spanish_channel TEXT,
     english_channel TEXT
-)`);
+)`, (err) => {
+  if (err) console.error("❌ Error al crear la tabla:", err.message);
+});
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
-// 📂 Cargar todos los comandos en memoria
+// 📂 Cargar comandos
 const commandFiles = readdirSync('./src/commands').filter(file => file.endsWith('.js'));
 const commands = new Map();
 
 for (const file of commandFiles) {
   const { default: command } = await import(`./src/commands/${file}`);
   commands.set(command.data.name, command);
+}
+
+if (commands.size === 0) {
+  console.warn("⚠️ No hay comandos registrados.");
 }
 
 // 🚀 Cuando el bot está listo
@@ -57,4 +68,4 @@ client.on('messageCreate', handleMessage);
 // 🔑 Iniciar sesión con el token
 client.login(process.env.TOKEN);
 
-const verion = 1.1
+const version = 1.1;
