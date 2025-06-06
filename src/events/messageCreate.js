@@ -25,10 +25,10 @@ export async function handleMessage(message) {
     }
 
     const targetChannel = message.guild.channels.cache.get(targetChannelId);
-    if (!targetChannel && (spanish_channel || english_channel)) {
-      console.warn(`⚠️ Falta un canal de traducción configurado.`);
-      return message.channel.send("⚠️ Uno de los canales de traducción ha sido eliminado. Usa `/set_channel` para actualizar la configuración.");
-    }
+    // if (!targetChannel && (spanish_channel || english_channel)) {
+    //   console.warn(`⚠️ Falta un canal de traducción configurado.`);
+    //   return message.channel.send("⚠️ Uno de los canales de traducción ha sido eliminado. Usa `/set_channel` para actualizar la configuración.");
+    // }
 
     const username = message.member ? message.member.displayName : message.author.username;
 
