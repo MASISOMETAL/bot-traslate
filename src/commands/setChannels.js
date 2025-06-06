@@ -1,6 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
 import sqlite3 from 'sqlite3';
-import { promisify } from 'util';
 
 const db = new sqlite3.Database('./settings.db', (err) => {
   if (err) {
@@ -8,10 +7,6 @@ const db = new sqlite3.Database('./settings.db', (err) => {
     process.exit(1);
   }
 });
-
-// Convertir `db.run()` y `db.get()` en promesas para usar `await`
-const dbRunAsync = promisify(db.run);
-const dbGetAsync = promisify(db.get);
 
 export default {
   data: new SlashCommandBuilder()
@@ -34,33 +29,31 @@ export default {
     const spanishChannel = interaction.options.getChannel('spanish');
     const englishChannel = interaction.options.getChannel('english');
 
-    try {
-      // 🔎 Verificar si la configuración ya existe
-      const existingConfig = await dbGetAsync("SELECT spanish_channel, english_channel FROM servers WHERE guild_id = ?", [interaction.guild.id]);
+    // 🔎 Verificar si ya existe una configuración
+    db.get("SELECT spanish_channel, english_channel FROM servers WHERE guild_id = ?", [interaction.guild.id], (err, row) => {
+      if (err) {
+        console.error("❌ Error al consultar la base de datos:", err);
+        return interaction.reply({ content: '❌ Hubo un problema al acceder a la base de datos.', ephemeral: true });
+      }
 
-      if (existingConfig) {
+      if (row) {
         return interaction.reply({ content: '⚠️ Los canales ya están configurados. Usa `/set_channel` nuevamente para actualizar.', ephemeral: true });
       }
 
-      // 💾 Insertar o actualizar la configuración
-      await dbRunAsync(`INSERT INTO servers (guild_id, spanish_channel, english_channel) VALUES (?, ?, ?) 
-                        ON CONFLICT(guild_id) DO UPDATE SET spanish_channel=?, english_channel=?`,
-        [interaction.guild.id, spanishChannel.id, englishChannel.id, spanishChannel.id, englishChannel.id]);
+      // 💾 Insertar o actualizar configuración
+      db.run(`INSERT INTO servers (guild_id, spanish_channel, english_channel) VALUES (?, ?, ?) 
+              ON CONFLICT(guild_id) DO UPDATE SET spanish_channel=?, english_channel=?`,
+        [interaction.guild.id, spanishChannel.id, englishChannel.id, spanishChannel.id, englishChannel.id],
+        (err) => {
+          if (err) {
+            console.error("❌ Error al guardar la configuración en la base de datos:", err);
+            return interaction.reply({ content: '❌ Hubo un problema al configurar los canales.', ephemeral: true });
+          }
 
-      await interaction.reply(`✅ **Canales configurados correctamente:**  
+          interaction.reply(`✅ **Canales configurados correctamente:**  
         - **Español:** ${spanishChannel}  
         - **Inglés:** ${englishChannel}`);
-
-      // 🛑 Cerrar la base de datos después de ejecutar el comando
-      db.close((err) => {
-        if (err) {
-          console.error("❌ Error al cerrar la base de datos:", err.message);
-        }
-      });
-
-    } catch (error) {
-      console.error("❌ Error al actualizar canales:", error);
-      await interaction.reply({ content: '❌ Hubo un problema al configurar los canales.', ephemeral: true });
-    }
+        });
+    });
   }
 };
