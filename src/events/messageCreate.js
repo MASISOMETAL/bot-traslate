@@ -32,21 +32,23 @@ export async function handleMessage(message) {
 
     const username = message.member ? message.member.displayName : message.author.username;
 
-    // 📷 Si el mensaje contiene imágenes, enviarlas al canal de destino sin traducir
-    if (message.attachments.size > 0) {
-      targetChannel.send({
-        content: `**${username}** ha enviado una imagen:`,
-        files: message.attachments.map(attachment => attachment.url)
-      });
-      return; // Evita que pase por la traducción
-    }
-
     if (!targetChannelId) return;
 
-    // 📝 Traducir solo si el mensaje es texto
-    const translatedText = await translateMessage(message.content, targetLanguage);
-    if (translatedText.includes("NO QUERY SPECIFIED")) return; // Evita enviar errores de traducción
+    // 📝 Si hay texto, traducirlo
+    let translatedText = "";
+    if (message.content.trim().length > 0) {
+      translatedText = await translateMessage(message.content, targetLanguage);
+      if (translatedText.includes("NO QUERY SPECIFIED")) translatedText = ""; // Evita errores de traducción
+    }
 
-    targetChannel.send(`**${username}**: ${translatedText}`);
+    // 📷 Si el mensaje tiene imágenes, enviarlas con el texto traducido (si hay)
+    const files = message.attachments.size > 0 ? message.attachments.map(attachment => attachment.url) : [];
+
+    if (translatedText || files.length > 0) {
+      targetChannel.send({
+        content: translatedText ? `**${username}**: ${translatedText}` : `**${username}** ha enviado una imagen:`,
+        files: files.length > 0 ? files : undefined
+      });
+    }
   });
 }
