@@ -56,3 +56,5 @@ client.on('messageCreate', handleMessage);
 
 // 🔑 Iniciar sesión con el token
 client.login(process.env.TOKEN);
+
+const verion = 1.1

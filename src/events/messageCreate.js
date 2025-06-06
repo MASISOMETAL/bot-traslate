@@ -24,30 +24,28 @@ export async function handleMessage(message) {
       targetLanguage = 'es';
     }
 
-    // 🔍 Verificar si el canal de destino existe
     const targetChannel = message.guild.channels.cache.get(targetChannelId);
     if (!targetChannel && (spanish_channel || english_channel)) {
       console.warn(`⚠️ Falta un canal de traducción configurado.`);
       return message.channel.send("⚠️ Uno de los canales de traducción ha sido eliminado. Usa `/set_channel` para actualizar la configuración.");
     }
 
-    // 📷 Si el mensaje contiene imágenes, enviarlas al canal de destino
-    if (message.attachments.size > 0) {
-      const username = message.member ? message.member.displayName : message.author.username;
+    const username = message.member ? message.member.displayName : message.author.username;
 
+    // 📷 Si el mensaje contiene imágenes, enviarlas al canal de destino sin traducir
+    if (message.attachments.size > 0) {
       targetChannel.send({
         content: `**${username}** ha enviado una imagen:`,
         files: message.attachments.map(attachment => attachment.url)
       });
-
-      return; // No intentar traducir imágenes
+      return; // Evita que pase por la traducción
     }
 
     if (!targetChannelId) return;
 
-    // 📝 Si el mensaje es solo texto, traducirlo normalmente
+    // 📝 Traducir solo si el mensaje es texto
     const translatedText = await translateMessage(message.content, targetLanguage);
-    const username = message.member ? message.member.displayName : message.author.username;
+    if (translatedText.includes("NO QUERY SPECIFIED")) return; // Evita enviar errores de traducción
 
     targetChannel.send(`**${username}**: ${translatedText}`);
   });
